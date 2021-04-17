@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 
 const OPENAI_KEY = String.fromEnvironment("OPENAI_KEY");
 
-String text = "";
+String apiOutputText = "";
 
 void main() => runApp(UnisHateThisTrick());
 
@@ -47,7 +47,7 @@ class OutputScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Text(text, style: Theme.of(context).textTheme.bodyText1),
+        child: Text(apiOutputText, style: Theme.of(context).textTheme.bodyText1),
       ),
     );
   }
@@ -64,11 +64,16 @@ class _InputFormState extends State<InputForm> {
   int apiCallCounter = 0;
   int maxTokens = 50;
   double temperature = 0.3;
+  String stop = "";
+
+  String highlightedKeyword = "";
+  String questionKeyword = "";
 
   double _formProgress = 0;
 
   void _apiCall() async {
 
+    //building the prompt and setting params
     switch(apiCallCounter) {
       case 0: { //Todo: adapt temperature and other parameters in each switch
           apiRequestText = "This is the course content:\n\n"
@@ -79,16 +84,40 @@ class _InputFormState extends State<InputForm> {
               "This is the course content:\n\n" + input1 + "\n\nKeywords:";
           maxTokens = 30;
           temperature = 0.45;
+          stop = "This";
       }
       break;
 
       case 1: {
-        apiRequestText = "xxxxxxxxxxxx";
+        print("HIGHGLITED_KW: "+highlightedKeyword);
+        apiRequestText = "Name three keywords on this topic: recommender systems\n\n"
+            "- Collaborative filtering\n"
+            "- Multi-criteria recommender systems\n"
+            "- Risk-aware recommender systems\n\n"
+            "Name three different keywords on this topic: "+highlightedKeyword;
+        maxTokens = 30;
+        temperature = 0.45;
+        stop = "Name";
       }
       break;
+
+      case 2: {
+        print("QUESTION_KW: "+questionKeyword);
+        apiRequestText = "First topic: recommender systems\n\n"
+            "a) Define the term “authentication.\n"
+            "b) Briefly explain a method for non-intrusive user identification.\n"
+            "c) Discuss whether the following statement is right or wrong: "
+            "\“Implicit user profiling methods usually offer more control for the user over the data collected about herself/himself.\”\n"
+            "d) What is the difference between a “Feature Augmentation (FA)” and “Feature Combination (FC)” hybrid recommender?\n\n"
+            "Second topic: "+questionKeyword;
+        maxTokens = 200;
+        temperature = 0.45;
+        stop = "Third";
+      }
     }
     print("API_REQUEST_TEXT:\n" + apiRequestText);
 
+    //contacting the API
     var result = await http.post(
       Uri.parse("https://api.openai.com/v1/engines/davinci/completions"),
       headers: {
@@ -101,33 +130,50 @@ class _InputFormState extends State<InputForm> {
         "max_tokens": maxTokens,
         "temperature": temperature,
         "top_p": 1,
+        "stop": stop,
         // "stop": "\n",
       }),
     );
 
     /// Decode the body and select the first choice
     var body = jsonDecode(result.body);
-    text = body["choices"][0]["text"];
-    print("OUTPUT:\n" + text);
+    apiOutputText = body["choices"][0]["text"];
+    print("OUTPUT:\n" + apiOutputText);
 
+    //handling the API response
     switch(apiCallCounter) {
       case 0: {
-        List<String> split1 = text.split('This is the course');
-        List<String> split2 = split1.first.split(',');
-        print("\n SPLIT2:");
-        split2.forEach((element) =>
+        List<String> splitA = apiOutputText.split(',');
+        print("\n SPLITa:");
+        splitA.forEach((element) =>
             print(element)
         );
 
-        print(split2.first);
+        //dummyUserSelection
+        highlightedKeyword = splitA[2];
 
+        apiCallCounter++;
+        _apiCall();
       }
       break;
 
       case 1: {
+        List<String> splitB = apiOutputText.split('- ');
+        print("\n SPLITb:");
+        splitB.forEach((element) =>
+            print(element)
+        );
 
+        //fixed to 2nd list entry, later on all
+        questionKeyword = splitB[2];
+        apiCallCounter++;
+        _apiCall();
       }
       break;
+
+      case 2: {
+        apiCallCounter = 0;
+      }
     }
 
   }
