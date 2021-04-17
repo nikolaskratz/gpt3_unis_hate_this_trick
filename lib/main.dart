@@ -61,18 +61,33 @@ class InputForm extends StatefulWidget {
 class _InputFormState extends State<InputForm> {
   String apiRequestText = "";
   String input1 = "";
-  String input2 = "";
+  int apiCallCounter = 0;
+  int maxTokens = 50;
+  double temperature = 0.3;
 
   double _formProgress = 0;
 
-  void _showOutputScreen() async {
-    // Navigator.of(context).pushNamed('/output');
-    // print("input1:"+input1);
-    // print("input2:"+input2);
-    apiRequestText = "This is the course content:\n\n" +input1 +
-        "\n\nThese are example questions on the course content:\n\n" +input2 +
-        "\n\n Generate more exam questions:";
-    print(apiRequestText);
+  void _apiCall() async {
+
+    switch(apiCallCounter) {
+      case 0: { //Todo: adapt temperature and other parameters in each switch
+          apiRequestText = "This is the course content:\n\n"
+              "- Introduction to user modeling\n"
+              "- User profile acquisition and management\n"
+              "- User modeling methods, e.g. Bayes networks\n\n"
+              "Keywords: user modeling, user profile acquisition, user profile management, user modeling methods, bayes networks\n\n"
+              "This is the course content:\n\n" + input1 + "\n\nKeywords:";
+          maxTokens = 30;
+          temperature = 0.45;
+      }
+      break;
+
+      case 1: {
+        apiRequestText = "xxxxxxxxxxxx";
+      }
+      break;
+    }
+    print("API_REQUEST_TEXT:\n" + apiRequestText);
 
     var result = await http.post(
       Uri.parse("https://api.openai.com/v1/engines/davinci/completions"),
@@ -83,8 +98,8 @@ class _InputFormState extends State<InputForm> {
       },
       body: jsonEncode({
         "prompt": apiRequestText,
-        "max_tokens": 100,
-        "temperature": 0.6,
+        "max_tokens": maxTokens,
+        "temperature": temperature,
         "top_p": 1,
         // "stop": "\n",
       }),
@@ -93,15 +108,27 @@ class _InputFormState extends State<InputForm> {
     /// Decode the body and select the first choice
     var body = jsonDecode(result.body);
     text = body["choices"][0]["text"];
-    print(text);
-    Navigator.of(context).pushNamed('/output');
-    //
-    // apiRequestText += text;
-    //
-    // /// Store the response message
-    // setState(() {
-    //   messages.add(Message(text.trim(), false));
-    // });
+    print("OUTPUT:\n" + text);
+
+    switch(apiCallCounter) {
+      case 0: {
+        List<String> split1 = text.split('This is the course');
+        List<String> split2 = split1.first.split(',');
+        print("\n SPLIT2:");
+        split2.forEach((element) =>
+            print(element)
+        );
+
+        print(split2.first);
+
+      }
+      break;
+
+      case 1: {
+
+      }
+      break;
+    }
 
   }
 
@@ -140,23 +167,7 @@ class _InputFormState extends State<InputForm> {
                 }),
 
           )),
-          Padding(
-              padding: EdgeInsets.all(8.0),
-              child: TextField(
-                maxLines: 15,
-                minLines: 10,
-                maxLength: 3000,
-                maxLengthEnforcement: MaxLengthEnforcement.enforced,
-                decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'Put some example exam questions here...'
-                ),
-                onChanged: (text) => setState(() {
-                  input2 = text;
-                }),
 
-              )
-          ),
 
           TextButton(
             style: ButtonStyle(
@@ -167,7 +178,7 @@ class _InputFormState extends State<InputForm> {
                 return states.contains(MaterialState.disabled) ? null : Colors.blue;
               }),
             ),
-            onPressed: _showOutputScreen, // UPDATED,
+            onPressed: _apiCall, // UPDATED,
             child: Text('Submit'),
           ),
         ],
