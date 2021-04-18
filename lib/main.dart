@@ -176,9 +176,9 @@ class _InputFormState extends State<InputForm> {
             "\“Implicit user profiling methods usually offer more control for the user over the data collected about herself/himself.\”\n"
             "d) What is the difference between a “Feature Augmentation (FA)” and “Feature Combination (FC)” hybrid recommender?\n\n"
             "Second topic: "+questionKeyword;
-        maxTokens = 200;
-        temperature = 0.65;
-        stop = "Third";
+        maxTokens = 400;
+        temperature = 0.55;
+        stop = "Third topic";
       }
     }
     print("API_REQUEST_TEXT:\n" + apiRequestText);
@@ -338,7 +338,7 @@ class _InputFormState extends State<InputForm> {
 
           ),
 
-          Text(outputResult, style: Theme.of(context).textTheme.headline5),
+          Text(outputResult, textAlign: TextAlign.center, style: Theme.of(context).textTheme.headline5),
         ],
       ),
     );
