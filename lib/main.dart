@@ -3,6 +3,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:group_button/group_button.dart';
+import 'package:multiline/multiline.dart';
+
 
 const OPENAI_KEY = String.fromEnvironment("OPENAI_KEY");
 
@@ -21,24 +24,53 @@ class UnisHateThisTrick extends StatelessWidget {
 
       },
     );
+
   }
 }
+
 
 class InputScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
-      backgroundColor: Colors.grey[200],
+
+      backgroundColor: Colors.white,
       body: Center(
-        child: FractionallySizedBox(
-          widthFactor: 0.8,
-          heightFactor: 0.9,
-          child: Card(
-            child: InputForm(),
-          ),
+        child: Container(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.vertical,
+            child: Column(
+              children: [
+                Image.asset('/home/niko/Documents/GPT3_Hackathon/gpt3_unis_hate_this_trick/assets/Frame3.png'),
+                Card(child: InputForm(),)
+              ],
+            ),
+          )
+          // child: Column(
+          //   children: [
+          //     Card(child: InputForm(),),
+          //     Image.asset('/home/niko/Documents/GPT3_Hackathon/gpt3_unis_hate_this_trick/assets/HomepageImage.png')
+          //   ],
+          // )
         ),
       ),
     );
+
+
+    // return Scaffold(
+    //
+    //   backgroundColor: Colors.grey[200],
+    //   body: Center(
+    //     child: FractionallySizedBox(
+    //       widthFactor: 0.8,
+    //       heightFactor: 0.9,
+    //       child: Card(
+    //         child: InputForm(),
+    //       ),
+    //     ),
+    //   ),
+    // );
   }
 }
 
@@ -69,9 +101,43 @@ class _InputFormState extends State<InputForm> {
   String highlightedKeyword = "";
   String questionKeyword = "";
 
+  String t1 = "";
+  String t2 = "";
+  String t3 = "";
+  String t4 = "";
+
+  String outputResult = "";
+
+  List<String> splitA = [];
+
   double _formProgress = 0;
 
+  void changeText(List<String> input) {
+    while(input.length<6) {
+      input.add(input[0]);
+    }
+    setState(() {
+      t1 = input[0];
+      t2 = input[1];
+      t3 = input[2];
+      t4 = input[3];
+    });
+  }
+
+  void useHighlightedKeyword (int index) {
+    highlightedKeyword = splitA[index];
+    apiCallCounter++;
+    _apiCall();
+  }
+
+  void updateResultOutput(String apiText) {
+    setState(() {
+      outputResult = apiText;
+    });
+  }
+
   void _apiCall() async {
+
 
     //building the prompt and setting params
     switch(apiCallCounter) {
@@ -83,8 +149,8 @@ class _InputFormState extends State<InputForm> {
               "Keywords: user modeling, user profile acquisition, user profile management, user modeling methods, bayes networks\n\n"
               "This is the course content:\n\n" + input1 + "\n\nKeywords:";
           maxTokens = 30;
-          temperature = 0.45;
-          stop = "This";
+          temperature = 0.55;
+          stop = "This is";
       }
       break;
 
@@ -96,7 +162,7 @@ class _InputFormState extends State<InputForm> {
             "- Risk-aware recommender systems\n\n"
             "Name three different keywords on this topic: "+highlightedKeyword;
         maxTokens = 30;
-        temperature = 0.45;
+        temperature = 0.55;
         stop = "Name";
       }
       break;
@@ -111,7 +177,7 @@ class _InputFormState extends State<InputForm> {
             "d) What is the difference between a “Feature Augmentation (FA)” and “Feature Combination (FC)” hybrid recommender?\n\n"
             "Second topic: "+questionKeyword;
         maxTokens = 200;
-        temperature = 0.45;
+        temperature = 0.65;
         stop = "Third";
       }
     }
@@ -135,25 +201,25 @@ class _InputFormState extends State<InputForm> {
       }),
     );
 
-    /// Decode the body and select the first choice
+    // Decode the body and select the first choice
     var body = jsonDecode(result.body);
     apiOutputText = body["choices"][0]["text"];
     print("OUTPUT:\n" + apiOutputText);
 
-    //handling the API response
+    ///handling the API response
     switch(apiCallCounter) {
       case 0: {
-        List<String> splitA = apiOutputText.split(',');
+        splitA = apiOutputText.split(',');
         print("\n SPLITa:");
+        splitA.forEach((element) =>
+            element=element.replaceAll("\n","")
+        );
         splitA.forEach((element) =>
             print(element)
         );
 
-        //dummyUserSelection
-        highlightedKeyword = splitA[2];
 
-        apiCallCounter++;
-        _apiCall();
+        changeText(splitA);
       }
       break;
 
@@ -172,16 +238,11 @@ class _InputFormState extends State<InputForm> {
       break;
 
       case 2: {
+        updateResultOutput(apiOutputText);
         apiCallCounter = 0;
       }
     }
 
-  }
-
-  void sendAPI (String request) {
-    // apiRequestText = apiRequestText + request;
-    // print(apiRequestText);
-    print(request);
   }
 
   @override
@@ -191,42 +252,93 @@ class _InputFormState extends State<InputForm> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          LinearProgressIndicator(value: _formProgress),
-          Text('UnisHateThisTrick', style: Theme
-              .of(context)
-              .textTheme
-              .headline4),
+
+
+
           Padding(
               padding: EdgeInsets.all(8.0),
-              child: TextField(
+              child: FractionallySizedBox(
+                widthFactor: 0.6,
+                child: TextField(
+                  style: TextStyle(fontSize: 20),
+                  maxLines: 13,
+                  minLines: 13,
+                  maxLength: 1000,
+                  maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                  decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: 'Put your course table of content here...'
+                  ),
+                  onChanged: (text) => setState(() {
+                    input1 = text;
+                  })
+              ),
 
-                maxLines: 15,
-                minLines: 10,
-                maxLength: 3000,
-                maxLengthEnforcement: MaxLengthEnforcement.enforced,
-                decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'Put your course table of content here...'
-                ),
-                onChanged: (text) => setState(() {
-                  input1 = text;
-                }),
 
           )),
 
-
-          TextButton(
-            style: ButtonStyle(
-              foregroundColor: MaterialStateProperty.resolveWith((Set<MaterialState> states) {
-                return states.contains(MaterialState.disabled) ? null : Colors.white;
-              }),
-              backgroundColor: MaterialStateProperty.resolveWith((Set<MaterialState> states) {
-                return states.contains(MaterialState.disabled) ? null : Colors.blue;
-              }),
+          // TextButton(
+          //   style: ButtonStyle(
+          //     foregroundColor: MaterialStateProperty.resolveWith((Set<MaterialState> states) {
+          //       return states.contains(MaterialState.disabled) ? null : Colors.white;
+          //     }),
+          //     backgroundColor: MaterialStateProperty.resolveWith((Set<MaterialState> states) {
+          //       return states.contains(MaterialState.disabled) ? null : Colors.blue;
+          //     }),
+          //
+          //   ),
+          //   onPressed: _apiCall, // UPDATED,
+          //   child: Text('Submit'),
+          // ),
+          Container(
+            height: 50.0,
+            margin: EdgeInsets.all(10),
+            child: RaisedButton(
+              onPressed: _apiCall,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(80.0)),
+              padding: EdgeInsets.all(0.0),
+              child: Ink(
+                decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xff374ABE), Color(0xff64B6FF)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    borderRadius: BorderRadius.circular(30.0)),
+                child: Container(
+                  constraints:
+                  BoxConstraints(maxWidth: 250.0, minHeight: 50.0),
+                  alignment: Alignment.center,
+                  child: Text(
+                    "Submit",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white, fontSize: 15),
+                  ),
+                ),
+              ),
             ),
-            onPressed: _apiCall, // UPDATED,
-            child: Text('Submit'),
           ),
+          Padding(
+            padding: EdgeInsets.all(8.0),
+            child:
+            GroupButton(
+                isRadio: true,
+                spacing: 10,
+                buttonHeight: 70,
+                buttonWidth: 350,
+
+                unselectedTextStyle: TextStyle(fontSize: 18, color: Colors.black),
+                onSelected: (index, isSelected) => useHighlightedKeyword(index),
+                selectedTextStyle: TextStyle(fontSize: 18),
+
+                buttons: [t1,t2,t3,t4]),
+
+
+
+          ),
+
+          Text(outputResult, style: Theme.of(context).textTheme.headline5),
         ],
       ),
     );
